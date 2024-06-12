@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Compression Dictionary Transport Test</title>
+    <style>
+      body { font-family: Arial, Helvetica, sans-serif;}
+     </style>
+    <script>
+      let tested = false;
+      let finished = false;
+
+      async function runTest() {
+        tested = true;
+        const script = document.createElement('script');
+        script.setAttribute('src','compressed.php');
+        document.head.appendChild(script);
+      }
+
+      function timeout() {
+        if (!tested) {
+          document.getElementById('result').innerText = 'ERROR: Dictionary failed to load. Is the "CompressionDictionaryTransport" feature enabled?';
+        }
+      }
+      setTimeout(timeout, 2000);
+
+      // log the resource timing entries
+      const observer = new PerformanceObserver((list) => {
+        list.getEntries().forEach((entry) => {
+          const name = entry.name.split('/').pop();
+          if (name == 'dictionary.php') {
+            setTimeout(runTest, 500);
+          } else if (name == 'compressed.php') {
+            if (entry.transferSize > 0 && entry.transferSize < 1000) {
+              result = "SUCCESS.<br>"
+            } else {
+              result = "FAILED.<br>"
+            }
+            result += '<br>transferSize = ' + entry.transferSize.toLocaleString();
+            result += '<br>encodedBodySize = ' + entry.encodedBodySize.toLocaleString();
+            result += '<br>decodedBodySize = ' + entry.decodedBodySize.toLocaleString();
+            document.getElementById('result').innerHTML = result;
+            finished = true;
+          }
+          console.log(`${name}: transferSize = ${entry.transferSize} bytes, encodedBodySize = ${entry.encodedBodySize}, decodedBodySize = ${entry.decodedBodySize}`);
+        });
+      });
+      observer.observe({ type: "resource", buffered: true });
+    </script>
+    <link rel="compression-dictionary" href="dictionary.php">
+    <link rel="dictionary" href="dictionary.php">
+  </head>
+  <body>
+    <p>This page tests loading of a resource using compression dictionary transport.</p>
+    <p>The page includes a reference to load the dictionary using &LTlink rel="compression-dictionary" href="dictionary.php"&GT.
+      Then it fetches "compressed.php".</p>
+    <p>After the compressed reource has loaded, the test checks the resource timing entries to see if the transfer and encoded sizes were the correct (compressed) size.</p>
+    <h1>Result:</h1>
+    <p id="result">
+      testing...
+    </p>
+  </body>
+</html>
